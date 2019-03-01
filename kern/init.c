@@ -11,12 +11,18 @@
 void
 test_backtrace(int x)
 {
+    cga_set_bg(CGA_COLOR_GRAY);
+    cga_set_fg(CGA_COLOR_RED);
 	cprintf("entering test_backtrace %d\n", x);
+	cga_reset();
 	if (x > 0)
 		test_backtrace(x-1);
 	else
 		mon_backtrace(0, 0, 0);
+    cga_set_bg(CGA_COLOR_GRAY);
+    cga_set_fg(CGA_COLOR_RED);
 	cprintf("leaving test_backtrace %d\n", x);
+	cga_reset();
 }
 
 void

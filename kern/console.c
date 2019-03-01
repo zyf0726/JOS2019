@@ -158,13 +158,28 @@ cga_init(void)
 }
 
 
+// Support colored text output
+static uint8_t cga_bg = 0, cga_fg = 0;
+void cga_set_bg(uint8_t bg) {
+    cga_bg = bg;
+}
+void cga_set_fg(uint8_t fg) {
+    cga_fg = fg;
+}
+void cga_reset(void) {
+    cga_fg = cga_bg = 0;
+}
 
 static void
 cga_putc(int c)
 {
 	// if no attribute given, then use black on white
-	if (!(c & ~0xFF))
-		c |= 0x0700;
+	if (!cga_bg && !cga_fg) {
+		c |= (CGA_COLOR_GRAY << 8) | (CGA_COLOR_BLACK << 12);
+	}
+    else {
+        c |= (cga_fg << 8) | (cga_bg << 12);
+    }   
 
 	switch (c & 0xff) {
 	case '\b':

@@ -17,6 +17,27 @@
 #define CRT_COLS	80
 #define CRT_SIZE	(CRT_ROWS * CRT_COLS)
 
+// Support colored text output
+#define CGA_COLOR_BLACK    0x0
+#define CGA_COLOR_BLUE     0x1
+#define CGA_COLOR_GREEN    0x2
+#define CGA_COLOR_CYAN     0x3
+#define CGA_COLOR_RED      0x4
+#define CGA_COLOR_MAGENTA  0x5
+#define CGA_COLOR_BROWN    0x6
+#define CGA_COLOR_GRAY     0x7
+#define CGA_COLOR_DARKGRAY        0x8
+#define CGA_COLOR_BRIGHTBLUE      0x9
+#define CGA_COLOR_BRIGHTGREEN     0xa
+#define CGA_COLOR_BRIGHTCYAN      0xb
+#define CGA_COLOR_BIRGHTRED       0xc
+#define CGA_COLOR_BRIGHTMAGENTA   0xd
+#define CGA_COLOR_YELLOW  0xe
+#define CGA_COLOR_WHITE   0xf
+void cga_set_bg(uint8_t);
+void cga_set_fg(uint8_t);
+void cga_reset(void);
+
 void cons_init(void);
 int cons_getc(void);
 
