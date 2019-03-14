@@ -442,7 +442,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
     if (va_pte == NULL)
         return -E_NO_MEM;
     ++pp->pp_ref; // 'pp_ref' need to be incremented before 'page_remove'
-    if ((*va_pte & PTE_P) == 1) {
+    if (*va_pte & PTE_P) {
         page_remove(pgdir, va);
         assert((*va_pte & PTE_P) == 0);
     }
@@ -466,8 +466,8 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
     pte_t *va_pte = pgdir_walk(pgdir, va, 0);
-    if (va_pte == NULL) // no physical page at address va
-        return NULL;
+    if (va_pte == NULL || ((*va_pte & PTE_P) == 0))
+        return NULL;  // no physical page at address va
     if (pte_store != NULL)
         *pte_store = va_pte;
     physaddr_t pa = PTE_ADDR(*va_pte);
