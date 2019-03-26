@@ -50,6 +50,7 @@ SECTIONS
 	.bss : {
 		PROVIDE(edata = .);
 		*(.bss)
+        *(COMMON) /* potential bug? */
 		PROVIDE(end = .);
 		BYTE(0)
 	}
