@@ -148,13 +148,15 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-    size_t arr_size = npages * sizeof(struct PageInfo);
-    pages = (struct PageInfo *) boot_alloc(arr_size);
-    memset(pages, 0, arr_size);
+    size_t page_arr_size = npages * sizeof(struct PageInfo);
+    pages = (struct PageInfo *) boot_alloc(page_arr_size);
+    memset(pages, 0, page_arr_size);
 
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
+    size_t env_arr_size = NENV * sizeof(struct Env);
+    envs = (struct Env *) boot_alloc(env_arr_size);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -179,7 +181,7 @@ mem_init(void)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
     boot_map_region(kern_pgdir,
-                    UPAGES, ROUNDUP(arr_size, PGSIZE),
+                    UPAGES, ROUNDUP(page_arr_size, PGSIZE),
                     PADDR(pages), PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
@@ -189,6 +191,9 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
+    boot_map_region(kern_pgdir,
+    				UENVS, ROUNDUP(env_arr_size, PGSIZE),
+					PADDR(envs), PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -216,7 +221,7 @@ mem_init(void)
 	// Your code goes here:
     
     boot_map_region(kern_pgdir,
-                    KERNBASE, /* 1u << 32*/ - KERNBASE,
+                    KERNBASE, /* 1u << 32 */ - KERNBASE,
                     0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
@@ -551,7 +556,20 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
-
+	void *start_va = ROUNDDOWN((void *) va, PGSIZE);
+	void *end_va = ROUNDUP((void *) va + len, PGSIZE);
+	perm = perm | PTE_P;
+	for (void *cur_va = start_va; cur_va < end_va; cur_va += PGSIZE) {
+		if ((uintptr_t) cur_va >= ULIM) {
+			user_mem_check_addr = (uintptr_t) MAX(va, cur_va);
+			return -E_FAULT;
+		}
+		pte_t *pte = pgdir_walk(env->env_pgdir, cur_va, 0);
+		if ((pte == NULL) || ((*pte & perm) != perm)) {
+			user_mem_check_addr = (uintptr_t) MAX(va, cur_va);
+			return -E_FAULT;
+		}
+	}
 	return 0;
 }
 

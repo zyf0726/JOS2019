@@ -46,10 +46,70 @@
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
+TRAPHANDLER_NOEC(handler_divide, T_DIVIDE)
+TRAPHANDLER_NOEC(handler_debug,  T_DEBUG)
+TRAPHANDLER_NOEC(handler_nmi,    T_NMI)
+TRAPHANDLER_NOEC(handler_brkpt,  T_BRKPT)
+TRAPHANDLER_NOEC(handler_oflow,  T_OFLOW)
+TRAPHANDLER_NOEC(handler_bound,  T_BOUND)
+TRAPHANDLER_NOEC(handler_illop,  T_ILLOP)
+TRAPHANDLER_NOEC(handler_device, T_DEVICE)
+TRAPHANDLER     (handler_dblflt, T_DBLFLT)
+/* reserved	trap number 9 */
+TRAPHANDLER     (handler_tss,   T_TSS)
+TRAPHANDLER     (handler_segnp, T_SEGNP)
+TRAPHANDLER     (handler_stack, T_STACK)
+TRAPHANDLER     (handler_gpflt, T_GPFLT)
+TRAPHANDLER     (handler_pgflt, T_PGFLT)
+/* reserved	trap number 15 */
+TRAPHANDLER_NOEC(handler_fperr, T_FPERR)
+TRAPHANDLER     (handler_align, T_ALIGN)
+TRAPHANDLER_NOEC(handler_mchk,  T_MCHK)
+TRAPHANDLER_NOEC(handler_simderr, T_SIMDERR)
 
+TRAPHANDLER_NOEC(handler_syscall, T_SYSCALL)
 
 
 /*
  * Lab 3: Your code here for _alltraps
  */
+_alltraps:
+	/* 'tf_trapno' has been pushed by TRAPHANDLER */
+	pushw	$0x0	/* tf_padding2 */
+	pushw	%ds	 	/* tf_ds */
+	pushw	$0x0	/* tf_padding1 */
+	pushw	%es		/* tf_es */
+	pushal			/* tf_regs */
+	movl	$(GD_KD), %eax
+	movw	%ax, %ds
+	movw	%ax, %es
+	pushl	%esp
+	call	trap
 
+.data
+########################################
+# trap handler table
+########################################
+	.p2align	4
+	.globl		hdlr_tab
+hdlr_tab:
+	.long	handler_divide
+	.long	handler_debug
+	.long	handler_nmi
+	.long 	handler_brkpt
+	.long	handler_oflow
+	.long	handler_bound
+	.long	handler_illop
+	.long	handler_device
+	.long	handler_dblflt
+	.long	0
+	.long	handler_tss
+	.long	handler_segnp
+	.long	handler_stack
+	.long	handler_gpflt
+	.long	handler_pgflt
+	.long	0
+	.long	handler_fperr
+	.long	handler_align
+	.long	handler_mchk
+	.long	handler_simderr
