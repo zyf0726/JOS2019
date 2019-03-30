@@ -73,6 +73,59 @@ trap_init(void)
 
 	// LAB 3: Your code here.
 
+/*	extern void handler_divide(void);
+	extern void handler_debug(void);
+	extern void handler_nmi(void);
+	extern void handler_brkpt(void);
+	extern void handler_oflow(void);
+	extern void handler_bound(void);
+	extern void handler_illop(void);
+	extern void handler_device(void);
+	extern void handler_dblflt(void);
+	// reserved handler of trap 9
+	extern void handler_tss(void);
+	extern void handler_segnp(void);
+	extern void handler_stack(void);
+	extern void handler_gpflt(void);
+	extern void handler_pgflt(void);
+	// reserved handler of trap 15
+	extern void handler_fperr(void);
+	extern void handler_align(void);
+	extern void handler_mchk(void);
+	extern void handler_simderr(void);
+
+	SETGATE(idt[T_DIVIDE],  0, GD_KT, handler_divide,  0);
+	SETGATE(idt[T_DEBUG],   0, GD_KT, handler_debug,   0);
+	SETGATE(idt[T_NMI],     0, GD_KT, handler_nmi,     0);
+	SETGATE(idt[T_BRKPT],   0, GD_KT, handler_brkpt,   0);
+	SETGATE(idt[T_OFLOW],   0, GD_KT, handler_oflow,   0);
+	SETGATE(idt[T_BOUND],   0, GD_KT, handler_bound,   0);
+	SETGATE(idt[T_ILLOP],   0, GD_KT, handler_illop,   0);
+	SETGATE(idt[T_DEVICE],  0, GD_KT, handler_device,  0);
+	SETGATE(idt[T_DBLFLT],  0, GD_KT, handler_dblflt,  0);
+	SETGATE(idt[T_TSS],     0, GD_KT, handler_tss,     0);
+	SETGATE(idt[T_SEGNP],   0, GD_KT, handler_segnp,   0);
+	SETGATE(idt[T_STACK],   0, GD_KT, handler_stack,   0);
+	SETGATE(idt[T_GPFLT],   0, GD_KT, handler_gpflt,   0);
+	SETGATE(idt[T_PGFLT],   0, GD_KT, handler_pgflt,   0);
+	SETGATE(idt[T_FPERR],   0, GD_KT, handler_fperr,   0);
+	SETGATE(idt[T_ALIGN],   0, GD_KT, handler_align,   0);
+	SETGATE(idt[T_MCHK],    0, GD_KT, handler_mchk,    0);
+	SETGATE(idt[T_SIMDERR], 0, GD_KT, handler_simderr, 0); */
+
+	const int INTERRUPT_GATE = 0, TRAP_GATE = 1;
+	const int KERNEL_DPL = 0, USER_DPL = 3;
+
+	extern uintptr_t hdlr_tab[];
+	for (int trapno = 0; trapno < 20; ++trapno)
+		SETGATE(idt[trapno],
+				INTERRUPT_GATE, GD_KT,
+				hdlr_tab[trapno],
+				T_BRKPT == trapno ? USER_DPL : KERNEL_DPL);
+
+	extern void handler_syscall(void);
+	SETGATE(idt[T_SYSCALL], INTERRUPT_GATE, GD_KT, handler_syscall, USER_DPL);
+
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -177,6 +230,22 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
 
+	if (tf->tf_trapno == T_PGFLT)
+		return page_fault_handler(tf);
+	if (tf->tf_trapno == T_BRKPT)
+		return monitor(tf);
+	if (tf->tf_trapno == T_SYSCALL) {
+		uint32_t syscallno = tf->tf_regs.reg_eax;
+		uint32_t a1 = tf->tf_regs.reg_edx;
+		uint32_t a2 = tf->tf_regs.reg_ecx;
+		uint32_t a3 = tf->tf_regs.reg_ebx;
+		uint32_t a4 = tf->tf_regs.reg_edi;
+		uint32_t a5 = tf->tf_regs.reg_esi;
+		int32_t ret = syscall(syscallno, a1, a2, a3, a4, a5);
+		tf->tf_regs.reg_eax = ret;
+		return;
+    }
+
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
 	// IRQ line or other reasons. We don't care.
@@ -271,6 +340,9 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
+
+	if (0 == (tf->tf_cs & 0x3))
+		panic("page_fault_handler: kernel page fault");
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
