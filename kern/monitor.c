@@ -32,7 +32,9 @@ static struct Command commands[] = {
     { "showmap", "Display all physical page mappings that apply to a particular range of virtual addresses", mon_showmappings },
     { "setperm", "Explicitly change the permissions of the mappings", mon_setpermbits },
     { "dumpmem-v", "Dump the contents of a range of virtual memory", mon_dumpmemory_v },
-    { "dumpmem-p", "Dump the contents of a range of physical memroy", mon_dumpmemory_p }
+    { "dumpmem-p", "Dump the contents of a range of physical memory", mon_dumpmemory_p },
+	{ "stepi", "Single-step one instruction", mon_stepi},
+	{ "continue", "Continue execution", mon_continue}
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -247,6 +249,18 @@ int mon_dumpmemory_p(int argc, char **argv, struct Trapframe *tf) {
     }
     mon_dumpmemory(KADDR(start_pa), KADDR(end_pa), TYPE_PADDR);
     return 0;
+}
+
+static const int TRAP_FLAG = 0x100;
+
+int mon_stepi(int argc, char **argv, struct Trapframe *tf) {
+	tf->tf_eflags |= TRAP_FLAG;
+	return -1;
+}
+
+int mon_continue(int argc, char **argv, struct Trapframe *tf) {
+	tf->tf_eflags &= ~TRAP_FLAG;
+	return -1;
 }
 
 /***** Kernel monitor command interpreter *****/

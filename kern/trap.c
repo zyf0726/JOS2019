@@ -200,7 +200,7 @@ trap_dispatch(struct Trapframe *tf)
 
 	if (tf->tf_trapno == T_PGFLT)
 		return page_fault_handler(tf);
-	if (tf->tf_trapno == T_BRKPT)
+	if (tf->tf_trapno == T_BRKPT || tf->tf_trapno == T_DEBUG)
 		return monitor(tf);
 	if (tf->tf_trapno == T_SYSCALL) {
 		uint32_t syscallno = tf->tf_regs.reg_eax;
