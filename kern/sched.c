@@ -29,7 +29,19 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+#define NEXT_ENV(env) \
+	((env) + 1 == envs + NENV) ? envs : (env) + 1
 
+	idle = (curenv != NULL) ? NEXT_ENV(curenv) : envs;
+	for (int repeat = 0; repeat < NENV; ++repeat)
+		if (idle->env_status == ENV_RUNNABLE)
+			env_run(idle);
+		else
+			idle = NEXT_ENV(idle);
+	if (curenv != NULL && curenv->env_status == ENV_RUNNING)
+		env_run(curenv);
+
+#undef NEXT_ENV
 	// sched_halt never returns
 	sched_halt();
 }

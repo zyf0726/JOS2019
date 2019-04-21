@@ -55,6 +55,27 @@ int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int	sys_ipc_recv(void *rcv_pg);
 
 // This must be inlined.  Exercise for reader: why?
+
+// In general, when a user invokes a system call, the control flow will be like:
+//     call sys_{name} --> sys_{name}(args)[user] --> syscall(syscallno, args)[user]
+// --> int 0x30 --> trap(tf)[kernel] --> trap_dispatch(tf)[kernel]
+// --> syscall(syscallno, args)[kernel] --> sys_{name}(args)[kernel]
+
+// During this process, two user stack frames are created. After the system call
+// is finished, the user will use two return addresses stored in the user stack
+// and two 'ret' instructions to return from the user procedure 'syscall' and 'sys_{name}'.
+
+// As for the special system call - 'exofork', if it were not inlined, when the new child
+// environment returned from the kernel, it would need a correct return address stored
+// in its stack. However, before the child can be running, even before all pages are
+// marked COPY ON WRITE (in fork()), the parent called several procedures such as duppage(),
+// therefore the child's user stack shared with its parent has been corrupted.
+
+// To avoid this, JOS makes 'sys_exofork' inlined and directly trap into kernel without
+// calling user procedure 'syscall', so that no user stack frame will be created, and the
+// control flow will be like:
+//     {inlined} sys_exofork(...) --> int 0x30 --> trap(tf) --> ...
+
 static inline envid_t __attribute__((always_inline))
 sys_exofork(void)
 {

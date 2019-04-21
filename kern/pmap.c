@@ -276,7 +276,12 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+	for (int i = 0; i < NCPU; ++i) {
+		uintptr_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(kern_pgdir,
+						kstacktop_i - KSTKSIZE, KSTKSIZE,
+						PADDR(percpu_kstacks[i]), PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -322,11 +327,14 @@ page_init(void)
 
     pages[0].pp_ref = 1; /* null page */
 
-    for (i = 1; i < npages_basemem; ++i) { /* base memory */
-        pages[i].pp_ref = 0;
-        pages[i].pp_link = page_free_list;
-        page_free_list = &pages[i];
-    }
+    for (i = 1; i < npages_basemem; ++i)
+    	if (pa2page(MPENTRY_PADDR) == &pages[i])
+    		pages[i].pp_ref = 1; /* reserved for MP support */
+    	else { /* base memory */
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+    	}
 
     for (i = IOPHYSMEM / PGSIZE; i < EXTPHYSMEM / PGSIZE; ++i) /* IO hole */
         pages[i].pp_ref = 1;
@@ -429,7 +437,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
     pde_t *va_pde = &pgdir[PDX(va)];
     if ((*va_pde & PTE_P) == 0) { // page table page not exist
         if (create == 0) return NULL;
-        struct PageInfo *pp = page_alloc(1);
+        struct PageInfo *pp = page_alloc(ALLOC_ZERO);
         if (pp == NULL) return NULL;  // allocation failed
         ++pp->pp_ref;
         *va_pde = page2pa(pp) | (PTE_P | PTE_W | PTE_U);
@@ -598,7 +606,16 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	physaddr_t start_pa = ROUNDDOWN(pa, PGSIZE);
+	physaddr_t end_pa = ROUNDUP(pa + size, PGSIZE);
+	size = end_pa - start_pa;
+	if (base + size < MMIOLIM) {
+		boot_map_region(kern_pgdir, base, size, start_pa,
+						PTE_PCD | PTE_PWT | PTE_W);
+		base = base + size;
+		return (void *) (base - size);
+	}
+	else panic("mmio_map_region: reservation would overflow MMIOLIM");
 }
 
 static uintptr_t user_mem_check_addr;
