@@ -54,6 +54,8 @@ int	sys_page_unmap(envid_t env, void *pg);
 int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int	sys_ipc_recv(void *rcv_pg);
 
+int	sys_env_set_priority(envid_t env, int prio);
+
 // This must be inlined.  Exercise for reader: why?
 
 // In general, when a user invokes a system call, the control flow will be like:

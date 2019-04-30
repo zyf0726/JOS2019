@@ -11,7 +11,7 @@ void sched_halt(void);
 void
 sched_yield(void)
 {
-	struct Env *idle;
+	struct Env *idle, *chosen;
 
 	// Implement simple round-robin scheduling.
 	//
@@ -33,13 +33,20 @@ sched_yield(void)
 	((env) + 1 == envs + NENV) ? envs : (env) + 1
 
 	idle = (curenv != NULL) ? NEXT_ENV(curenv) : envs;
-	for (int repeat = 0; repeat < NENV; ++repeat)
-		if (idle->env_status == ENV_RUNNABLE)
-			env_run(idle);
-		else
-			idle = NEXT_ENV(idle);
-	if (curenv != NULL && curenv->env_status == ENV_RUNNING)
-		env_run(curenv);
+	chosen = NULL;
+	for (int repeat = 0; repeat < NENV; ++repeat) {
+		if (idle->env_status == ENV_RUNNABLE) {
+			if ((chosen == NULL) || (chosen->env_priority < idle->env_priority))
+				chosen = idle;
+		}
+		idle = NEXT_ENV(idle);
+	}
+	if (curenv != NULL && curenv->env_status == ENV_RUNNING) {
+		if ((chosen == NULL) || (chosen->env_priority < curenv->env_priority))
+			chosen = curenv;
+	}
+	if (chosen != NULL)
+		env_run(chosen);
 
 #undef NEXT_ENV
 	// sched_halt never returns

@@ -354,6 +354,28 @@ sys_ipc_recv(void *dstva)
 	panic("sys_ipc_recv never directly returns on sucess");
 }
 
+
+
+// Set the scheduling priority of 'envid' to number 'prio', which ranges
+// from -10 to 10 and is initially set to 0 when an environment is created.
+// An environment can only set its own or its parent's priority.
+
+// Return 0 on success, < 0 on error. Errors are:
+//	-E_BAD_ENV if environment envid doesn't currently exist,
+//		or the caller doesn't have permission to change envid.
+//	-E_INVAL if prio is not in the range of -10..10
+static int
+sys_env_set_priority(envid_t envid, int prio)
+{
+	struct Env *e; int r;
+	if ((r = envid2env(envid, &e, 1)) != 0)
+		return r;
+	if (prio < -10 || prio > 10)
+		return -E_INVAL;
+	e->env_priority = prio;
+	return 0;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -388,6 +410,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_ipc_try_send((envid_t) a1, (uint32_t) a2, (void *) a3, (int) a4);
 	case SYS_ipc_recv:
 		return sys_ipc_recv((void *) a1);
+	case SYS_env_set_priority:
+		return sys_env_set_priority((envid_t) a1, (int) a2);
 	default:
 		return -E_INVAL;
 	}
