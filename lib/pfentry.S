@@ -12,14 +12,14 @@
 // exception stack, and then it pushes a UTrapframe onto our user
 // exception stack:
 //
-//	trap-time esp
-//	trap-time eflags
-//	trap-time eip
-//	utf_regs.reg_eax
+//	trap-time esp			+0x30
+//	trap-time eflags		+0x2c
+//	trap-time eip			+0x28
+//	utf_regs.reg_eax		+0x24
 //	...
-//	utf_regs.reg_esi
-//	utf_regs.reg_edi
-//	utf_err (error code)
+//	utf_regs.reg_esi		+0xc
+//	utf_regs.reg_edi		+0x8
+//	utf_err (error code)	+0x4
 //	utf_fault_va            <-- %esp
 //
 // If this is a recursive fault, the kernel will reserve for us a
@@ -65,18 +65,28 @@ _pgfault_upcall:
 	// ways as registers become unavailable as scratch space.
 	//
 	// LAB 4: Your code here.
+	subl $0x4, 0x30(%esp)	// trap-time esp -= 4
+	movl 0x30(%esp), %eax	// %eax = trap-time esp
+	movl 0x28(%esp), %edx	// %edx = trap-time eip
+	movl %edx, (%eax)	// *(trap-time esp) = trap-time eip
 
 	// Restore the trap-time registers.  After you do this, you
 	// can no longer modify any general-purpose registers.
 	// LAB 4: Your code here.
+	addl $0x8, %esp	// %esp --> end of struct PushRegs
+	popal			// %esp --> trap-time eip
 
 	// Restore eflags from the stack.  After you do this, you can
 	// no longer use arithmetic operations or anything else that
 	// modifies eflags.
 	// LAB 4: Your code here.
+	addl $0x4, %esp	// %esp --> trap-time eflags
+	popfl			// %esp --> trap-time esp
 
 	// Switch back to the adjusted trap-time stack.
 	// LAB 4: Your code here.
+	popl %esp
 
 	// Return to re-execute the instruction that faulted.
 	// LAB 4: Your code here.
+	ret

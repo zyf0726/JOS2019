@@ -74,6 +74,8 @@ start32:
 	movl    $0x0, %ebp       # nuke frame pointer
 
 	# Call mp_main().  (Exercise for the reader: why the indirect call?)
+	# Answer: symbol 'mp_main' is linked to a high address, and this large
+	#		  immediate value cannot be directly encoded in a call instruction.
 	movl    $mp_main, %eax
 	call    *%eax
 
