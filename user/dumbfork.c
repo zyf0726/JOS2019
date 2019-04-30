@@ -55,10 +55,6 @@ dumbfork(void)
 		panic("sys_exofork: %e", envid);
 	if (envid == 0) {
 		// We're the child.
-		// The copied value of the global variable 'thisenv'
-		// is no longer valid (it refers to the parent!).
-		// Fix it and return 0.
-		thisenv = &envs[ENVX(sys_getenvid())];
 		return 0;
 	}
 

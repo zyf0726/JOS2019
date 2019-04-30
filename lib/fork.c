@@ -115,10 +115,8 @@ fork(void)
 	set_pgfault_handler(pgfault);
 	if ((envid = sys_exofork()) < 0)
 		return envid;
-	if (envid == 0) { // child
-		thisenv = &envs[ENVX(sys_getenvid())];
+	if (envid == 0) // child
 		return 0;
-	}
 	// parent
 	for (uintptr_t va = 0; va < USTACKTOP; va += PGSIZE)
 		if ((errno = duppage(envid, PGNUM(va))) != 0)
@@ -133,10 +131,55 @@ fork(void)
 	return envid;
 }
 
+static int
+sduppage(envid_t envid, unsigned pn, bool shared)
+{
+	int r;
+
+	void *addr = (void *) (pn * PGSIZE);
+	if (!(uvpd[PDX(addr)] & PTE_P) || !(uvpt[pn] & PTE_P))
+		return 0;
+	pte_t pte = uvpt[pn];
+	if (((pte & PTE_W) || (pte & PTE_COW)) && !shared) {
+		if ((r = sys_page_map(0, addr, envid, addr, PTE_P | PTE_U | PTE_COW)) < 0)
+			return r;
+		if ((r = sys_page_map(0, addr, 0, addr, PTE_P | PTE_U | PTE_COW)) < 0)
+			return r;
+	}
+	else {
+		if ((r = sys_page_map(0, addr, envid, addr, pte & PTE_SYSCALL)) < 0)
+			return r;
+	}
+	return 0;
+}
+
 // Challenge!
 int
 sfork(void)
 {
-	panic("sfork not implemented");
-	return -E_INVAL;
+	int errno; envid_t envid;
+
+	set_pgfault_handler(pgfault);
+	if ((envid = sys_exofork()) < 0)
+		return envid;
+	if (envid == 0) // child
+		return 0;
+	// parent
+	uintptr_t va = USTACKTOP;
+	bool user_stack_page = true;
+	while (va > 0) {
+		va -= PGSIZE;
+		if ((errno = sduppage(envid, PGNUM(va), !user_stack_page)) != 0)
+			return errno;
+		if (!(uvpd[PDX(va)] & PTE_P) || !(uvpt[PGNUM(va)] & PTE_P))
+			user_stack_page = false;
+	}
+	if ((errno = sys_page_alloc(envid, (void *) (UXSTACKTOP - PGSIZE),
+								PTE_P | PTE_U | PTE_W)) != 0)
+		return errno;
+	if ((errno = sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall)) != 0)
+		return errno;
+	if ((errno = sys_env_set_status(envid, ENV_RUNNABLE)) != 0)
+		return errno;
+	return envid;
 }
