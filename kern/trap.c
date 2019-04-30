@@ -114,15 +114,13 @@ trap_init(void)
 	const int INTERRUPT_GATE = 0, TRAP_GATE = 1;
 	const int KERNEL_DPL = 0, USER_DPL = 3;
 
-	extern uintptr_t hdlr_tab[];
-	for (int trapno = 0; trapno < 20; ++trapno)
-		SETGATE(idt[trapno],
-				INTERRUPT_GATE, GD_KT,
-				hdlr_tab[trapno],
-				T_BRKPT == trapno ? USER_DPL : KERNEL_DPL);
-
-	extern void handler_syscall(void);
-	SETGATE(idt[T_SYSCALL], INTERRUPT_GATE, GD_KT, handler_syscall, USER_DPL);
+	extern uintptr_t hdlr_tab[]; int dpl;
+	for (int trapno = 0; trapno <= T_SYSCALL; ++trapno) {
+		if (trapno == T_BRKPT || trapno == T_SYSCALL)
+			dpl = USER_DPL;
+		else dpl = KERNEL_DPL;
+		SETGATE(idt[trapno], INTERRUPT_GATE, GD_KT, hdlr_tab[trapno], dpl);
+	}
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -256,6 +254,11 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+		lapic_eoi();
+		sched_yield();
+		return;
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);

@@ -68,8 +68,24 @@ TRAPHANDLER     (handler_align, T_ALIGN)
 TRAPHANDLER_NOEC(handler_mchk,  T_MCHK)
 TRAPHANDLER_NOEC(handler_simderr, T_SIMDERR)
 
-TRAPHANDLER_NOEC(handler_syscall, T_SYSCALL)
+TRAPHANDLER_NOEC(handler_irq_0,  IRQ_OFFSET + 0)
+TRAPHANDLER_NOEC(handler_irq_1,  IRQ_OFFSET + 1)
+TRAPHANDLER_NOEC(handler_irq_2,  IRQ_OFFSET + 2)
+TRAPHANDLER_NOEC(handler_irq_3,  IRQ_OFFSET + 3)
+TRAPHANDLER_NOEC(handler_irq_4,  IRQ_OFFSET + 4)
+TRAPHANDLER_NOEC(handler_irq_5,  IRQ_OFFSET + 5)
+TRAPHANDLER_NOEC(handler_irq_6,  IRQ_OFFSET + 6)
+TRAPHANDLER_NOEC(handler_irq_7,  IRQ_OFFSET + 7)
+TRAPHANDLER_NOEC(handler_irq_8,  IRQ_OFFSET + 8)
+TRAPHANDLER_NOEC(handler_irq_9,  IRQ_OFFSET + 9)
+TRAPHANDLER_NOEC(handler_irq_10, IRQ_OFFSET + 10)
+TRAPHANDLER_NOEC(handler_irq_11, IRQ_OFFSET + 11)
+TRAPHANDLER_NOEC(handler_irq_12, IRQ_OFFSET + 12)
+TRAPHANDLER_NOEC(handler_irq_13, IRQ_OFFSET + 13)
+TRAPHANDLER_NOEC(handler_irq_14, IRQ_OFFSET + 14)
+TRAPHANDLER_NOEC(handler_irq_15, IRQ_OFFSET + 15)
 
+TRAPHANDLER_NOEC(handler_syscall, T_SYSCALL)
 
 /*
  * Lab 3: Your code here for _alltraps
@@ -114,3 +130,21 @@ hdlr_tab:
 	.long	handler_align
 	.long	handler_mchk
 	.long	handler_simderr
+	.space	(IRQ_OFFSET-20) << 2
+	.long	handler_irq_0
+	.long	handler_irq_1
+	.long	handler_irq_2
+	.long	handler_irq_3
+	.long	handler_irq_4
+	.long	handler_irq_5
+	.long	handler_irq_6
+	.long	handler_irq_7
+	.long	handler_irq_8
+	.long	handler_irq_9
+	.long	handler_irq_10
+	.long	handler_irq_11
+	.long	handler_irq_12
+	.long	handler_irq_13
+	.long	handler_irq_14
+	.long	handler_irq_15
+	.long	handler_syscall
