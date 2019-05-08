@@ -75,7 +75,7 @@ duppage(envid_t envid, unsigned pn)
 	if (!(uvpd[PDX(addr)] & PTE_P) || !(uvpt[pn] & PTE_P))
 		return 0;
 	pte_t pte = uvpt[pn];
-	if ((pte & PTE_W) || (pte & PTE_COW)) {
+	if (!(pte & PTE_SHARE) && ((pte & PTE_W) || (pte & PTE_COW))) {
 		// The ordering here - marking a page as COW in the child
 		// before marking it in the parent - actually matters.
 		if ((r = sys_page_map(0, addr, envid, addr, PTE_P | PTE_U | PTE_COW)) < 0)

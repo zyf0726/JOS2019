@@ -404,9 +404,10 @@ env_create(uint8_t *binary, enum EnvType type)
 	struct Env *e = NULL; int errno;
 	if ((errno = env_alloc(&e, 0)) != 0)
 		panic("env_create: env_alloc failed(%e)", errno);
-
-	load_icode(e, binary);
+	if (type == ENV_TYPE_FS)
+		e->env_tf.tf_eflags |= FL_IOPL_3; // user privilege level
 	e->env_type = type;
+	load_icode(e, binary);
 }
 
 //
