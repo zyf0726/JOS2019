@@ -31,6 +31,9 @@ USERAPPS :=		$(USERAPPS) \
 			$(OBJDIR)/user/testshell \
 			$(OBJDIR)/user/hello \
 			$(OBJDIR)/user/faultio \
+            $(OBJDIR)/user/execgetenvid \
+            $(OBJDIR)/user/execfdsharing \
+            $(OBJDIR)/user/spawngetenvid 
 
 FSIMGTXTFILES :=	$(FSIMGTXTFILES) \
 			fs/lorem \

@@ -410,24 +410,13 @@ env_create(uint8_t *binary, enum EnvType type)
 	load_icode(e, binary);
 }
 
-//
-// Frees env e and all memory it uses.
-//
+// Free all memory that e uses
 void
-env_free(struct Env *e)
+env_free_memory(struct Env *e)
 {
 	pte_t *pt;
 	uint32_t pdeno, pteno;
 	physaddr_t pa;
-
-	// If freeing the current environment, switch to kern_pgdir
-	// before freeing the page directory, just in case the page
-	// gets reused.
-	if (e == curenv)
-		lcr3(PADDR(kern_pgdir));
-
-	// Note the environment's demise.
-	// cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 
 	// Flush all mapped pages in the user portion of the address space
 	static_assert(UTOP % PTSIZE == 0);
@@ -456,11 +445,37 @@ env_free(struct Env *e)
 	pa = PADDR(e->env_pgdir);
 	e->env_pgdir = 0;
 	page_decref(pa2page(pa));
+}
 
-	// return the environment to the free list
+// return the environment to the free list
+void
+env_returnto_freelist(struct Env *e)
+{
+	if (e->env_pgdir != NULL)
+		panic("env_returnto_freelist: return a environment with non-null page directory");
+
 	e->env_status = ENV_FREE;
 	e->env_link = env_free_list;
 	env_free_list = e;
+}
+
+//
+// Frees env e and all memory it uses.
+//
+void
+env_free(struct Env *e)
+{
+	// If freeing the current environment, switch to kern_pgdir
+	// before freeing the page directory, just in case the page
+	// gets reused.
+	if (e == curenv)
+		lcr3(PADDR(kern_pgdir));
+
+	// Note the environment's demise.
+	// cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+
+	env_free_memory(e);
+	env_returnto_freelist(e);
 }
 
 //

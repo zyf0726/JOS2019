@@ -83,6 +83,10 @@ KERN_BINFILES +=	user/faultio\
 	      		user/spawnfaultio\
 	      		user/testfile \
 			user/spawnhello \
+            user/exechello \
+            user/execgetenvid \
+            user/execfdsharing \
+            user/spawngetenvid \
 			user/icode \
 			fs/fs
 

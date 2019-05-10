@@ -28,6 +28,13 @@ spawn(const char *prog, const char **argv)
 	struct Proghdr *ph;
 	int perm;
 
+	/*
+	// use 'fork' followed by 'exec' to implement 'spawn'
+	if ((child = fork()) != 0)
+		return child;
+	if ((r = exec(prog, argv)) < 0)
+		return r; */
+
 	// This code follows this procedure:
 	//
 	//   - Open the program file.

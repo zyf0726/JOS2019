@@ -141,6 +141,47 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	return 0;
 }
 
+// Free all memory that current environment is using,
+// replace curenv's environment state with that of newenvid,
+// and set its env_status to ENV_RUNNABLE. Finally,
+// return newenvid to the free list.
+//
+// Returns 0 on success, < 0 on error. Errors are:
+//  -E_BAD_ENV if environment newenvid doesn't currently exist,
+//      or the caller doesn't have permission to change newenvid.
+//  -E_INVAL if newenvid is neither curenvid nor a new environment.
+static int
+sys_env_exec(envid_t newenvid)
+{
+	struct Env *newenv; int errno;
+	envid_t curenvid;
+
+	if ((errno = envid2env(newenvid, &newenv, 1)) != 0)
+		return errno;
+
+	if ((curenvid = curenv->env_id) == newenvid)
+		return 0;
+	if (newenv->env_status != ENV_NOT_RUNNABLE)
+		return -E_INVAL;
+
+	env_free_memory(curenv);
+
+	curenv->env_ipc_dstva = newenv->env_ipc_dstva;
+	curenv->env_ipc_from = newenv->env_ipc_from;
+	curenv->env_ipc_perm = newenv->env_ipc_perm;
+	curenv->env_ipc_recving = newenv->env_ipc_recving;
+	curenv->env_ipc_value = newenv->env_ipc_value;
+	curenv->env_pgdir = newenv->env_pgdir;
+	curenv->env_pgfault_upcall = newenv->env_pgfault_upcall;
+	curenv->env_status = ENV_RUNNABLE;
+	curenv->env_tf = newenv->env_tf;
+
+	newenv->env_pgdir = NULL;
+	env_returnto_freelist(newenv);
+
+	return 0;
+}
+
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
 // Env's 'env_pgfault_upcall' field.  When 'envid' causes a page fault, the
 // kernel will push a fault record onto the exception stack, then branch to
@@ -428,6 +469,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_env_set_pgfault_upcall((envid_t) a1, (void *) a2);
 	case SYS_env_set_trapframe:
 		return sys_env_set_trapframe((envid_t) a1, (struct Trapframe *) a2);
+	case SYS_env_exec:
+		return sys_env_exec((envid_t) a1);
 	case SYS_yield:
 		return sys_yield(), 0;
 	case SYS_ipc_try_send:
