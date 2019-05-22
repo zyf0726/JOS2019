@@ -32,7 +32,8 @@ static struct Command commands[] = {
     { "showmap", "Display all physical page mappings that apply to a particular range of virtual addresses", mon_showmappings },
     { "setperm", "Explicitly change the permissions of the mappings", mon_setpermbits },
     { "dumpmem-v", "Dump the contents of a range of virtual memory", mon_dumpmemory_v },
-    { "dumpmem-p", "Dump the contents of a range of physical memroy", mon_dumpmemory_p }
+    { "dumpmem-p", "Dump the contents of a range of physical memroy", mon_dumpmemory_p },
+	{ "showtime", "Display the current time", showtime }
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -248,6 +249,60 @@ int mon_dumpmemory_p(int argc, char **argv, struct Trapframe *tf) {
     mon_dumpmemory(KADDR(start_pa), KADDR(end_pa), TYPE_PADDR);
     return 0;
 }
+
+/* Ref: https://www.cnblogs.com/sagerking/p/6368044.html */
+#define CMOS_READ(addr)		(outb(0x70, addr|0x80), inb(0x71))
+
+#define RTC_REG_A		10
+#define RTC_REG_B		11
+#define RTC_DM_BINARY	0x04
+#define RTC_ALWAYS_BCD	1
+#define RTC_FREQ_SELECT	RTC_REG_A
+#define RTC_UIP			0x80
+
+#define RTC_SECONDS			0
+#define RTC_MINUTES			2
+#define RTC_HOURS			4
+#define RTC_DAY_OF_WEEK		6
+#define RTC_DAY_OF_MONTH	7
+#define RTC_MONTH			8
+#define RTC_YEAR			9
+#define BCD_TO_BIN(val)		((val) = ((val) & 15) + ((val) >> 4) * 10)
+#define RTC_CONTROL			RTC_REG_B
+
+int showtime(int argc, char **argv, struct Trapframe *tf) {
+
+	int i, sec, min, hour, day, mon, year;
+
+	for (i = 0; i < 1000000; ++i)
+		if (CMOS_READ(RTC_FREQ_SELECT) & RTC_UIP)
+			break;
+	for (i = 0; i < 1000000; ++i)
+		if (!(CMOS_READ(RTC_FREQ_SELECT) & RTC_UIP))
+			break;
+
+    do {
+		sec = CMOS_READ(RTC_SECONDS);
+		min = CMOS_READ(RTC_MINUTES);
+		hour = CMOS_READ(RTC_HOURS);
+		day = CMOS_READ(RTC_DAY_OF_MONTH);
+		mon = CMOS_READ(RTC_MONTH);
+		year = CMOS_READ(RTC_YEAR);
+	} while (sec != CMOS_READ(RTC_SECONDS));
+	if (!(CMOS_READ(RTC_CONTROL) & RTC_DM_BINARY) || RTC_ALWAYS_BCD) {
+		BCD_TO_BIN(sec);
+		BCD_TO_BIN(min);
+		BCD_TO_BIN(hour);
+		BCD_TO_BIN(day);
+		BCD_TO_BIN(mon);
+		BCD_TO_BIN(year);
+    }
+
+    cprintf("the current time is:  %d-%d-%d  %02d:%02d:%02d (UTC+0)\n", year, mon, day, hour, min, sec);
+    return 0;
+}
+
+#undef CMOS_READ
 
 /***** Kernel monitor command interpreter *****/
 
