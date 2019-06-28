@@ -4,7 +4,7 @@
  * see the materials available on the class references page.
  */
 
-#include "fs.h"
+#include "ufs.h"
 #include <inc/x86.h>
 
 #define IDE_BSY		0x80

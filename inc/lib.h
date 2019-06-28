@@ -17,7 +17,7 @@
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
 #include <inc/trap.h>
-#include <inc/fs.h>
+#include <inc/ufs.h>
 #include <inc/fd.h>
 #include <inc/args.h>
 

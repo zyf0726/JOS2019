@@ -1,5 +1,5 @@
 
-#include "fs.h"
+#include "ufs.h"
 
 // Return the virtual address of this disk block.
 void*
@@ -47,7 +47,6 @@ bc_pgfault(struct UTrapframe *utf)
 	// Hint: first round addr to page boundary. fs/ide.c has code to read
 	// the disk.
 	//
-	// LAB 5: you code here:
 	addr = ROUNDDOWN(addr, BLKSIZE);
 	if ((r = sys_page_alloc(0, addr, PTE_P | PTE_U | PTE_W)) < 0)
 		panic("in bc_pgfault, sys_page_alloc: %e", r);
@@ -62,7 +61,7 @@ bc_pgfault(struct UTrapframe *utf)
 	// Check that the block we read was allocated. (exercise for
 	// the reader: why do we do this *after* reading the block
 	// in?)
-	if (bitmap && block_is_free(blockno))
+	if (bitmap_b && block_is_free(blockno))
 		panic("reading free block %08x\n", blockno);
 }
 
@@ -82,7 +81,6 @@ flush_block(void *addr)
 	if (addr < (void*)DISKMAP || addr >= (void*)(DISKMAP + DISKSIZE))
 		panic("flush_block of bad va %08x", addr);
 
-	// LAB 5: Your code here.
 	if (!va_is_mapped(addr) || !va_is_dirty(addr))
 		return;
 

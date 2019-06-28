@@ -1,4 +1,4 @@
-#include <inc/fs.h>
+#include <inc/ufs.h>
 #include <inc/string.h>
 #include <inc/lib.h>
 

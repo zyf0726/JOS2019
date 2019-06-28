@@ -22,14 +22,22 @@ ls(const char *path, const char *prefix)
 void
 lsdir(const char *path, const char *prefix)
 {
-	int fd, n;
-	struct File f;
+	char temppath[MAXPATHLEN];
+
+	int fd, n, r;
+	struct DirEntry entry;
+	struct Stat st;
 
 	if ((fd = open(path, O_RDONLY)) < 0)
 		panic("open %s: %e", path, fd);
-	while ((n = readn(fd, &f, sizeof f)) == sizeof f)
-		if (f.f_name[0])
-			ls1(prefix, f.f_type==FTYPE_DIR, f.f_size, f.f_name);
+	while ((n = readn(fd, &entry, sizeof entry)) == sizeof entry)
+		if (entry.f_name[0]) {
+			strcpy(temppath, path);
+			strcat(temppath, entry.f_name);
+			if ((r = stat(temppath, &st)) < 0)
+				panic("stat %s: %e", temppath, r);
+			ls1(prefix, st.st_isdir, st.st_size, entry.f_name);
+		}
 	if (n > 0)
 		panic("short read in directory %s", path);
 	if (n < 0)

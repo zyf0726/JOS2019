@@ -6,7 +6,7 @@
 #include <inc/x86.h>
 #include <inc/string.h>
 
-#include "fs.h"
+#include "ufs.h"
 
 
 #define debug 0
@@ -31,7 +31,8 @@
 
 struct OpenFile {
 	uint32_t o_fileid;	// file id
-	struct File *o_file;	// mapped descriptor for open file
+	struct DirEntry *o_entry;	// directory entry of open file
+	struct Inode *o_file;	// mapped descriptor for open file
 	int o_mode;		// open mode
 	struct Fd *o_fd;	// Fd page
 };
@@ -42,7 +43,7 @@ struct OpenFile {
 
 // initialize to force into data section
 struct OpenFile opentab[MAXOPEN] = {
-	{ 0, 0, 1, 0 }
+	{ 0, 0, 0, 1, 0 }
 };
 
 // Virtual address at which to receive page mappings containing client requests.
@@ -104,7 +105,8 @@ serve_open(envid_t envid, struct Fsreq_open *req,
 	   void **pg_store, int *perm_store)
 {
 	char path[MAXPATHLEN];
-	struct File *f;
+	struct DirEntry *entry;
+	struct Inode *f;
 	int fileid;
 	int r;
 	struct OpenFile *o;
@@ -126,7 +128,7 @@ serve_open(envid_t envid, struct Fsreq_open *req,
 
 	// Open the file
 	if (req->req_omode & O_CREAT) {
-		if ((r = file_create(path, &f)) < 0) {
+		if ((r = file_create(path, &entry)) < 0) {
 			if (!(req->req_omode & O_EXCL) && r == -E_FILE_EXISTS)
 				goto try_open;
 			if (debug)
@@ -135,12 +137,13 @@ serve_open(envid_t envid, struct Fsreq_open *req,
 		}
 	} else {
 try_open:
-		if ((r = file_open(path, &f)) < 0) {
+		if ((r = file_open(path, &entry)) < 0) {
 			if (debug)
 				cprintf("file_open failed: %e", r);
 			return r;
 		}
 	}
+	f = &inodes[entry->f_fileno];
 
 	// Truncate
 	if (req->req_omode & O_TRUNC) {
@@ -150,14 +153,16 @@ try_open:
 			return r;
 		}
 	}
-	if ((r = file_open(path, &f)) < 0) {
+	if ((r = file_open(path, &entry)) < 0) {
 		if (debug)
 			cprintf("file_open failed: %e", r);
 		return r;
 	}
+	f = &inodes[entry->f_fileno];
 
-	// Save the file pointer
+	// Save the file pointer and directory entry pointer
 	o->o_file = f;
+	o->o_entry = entry;
 
 	// Fill out the Fd structure
 	o->o_fd->fd_file.id = o->o_fileid;
@@ -213,7 +218,6 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	if (debug)
 		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
-	// LAB 5: Your code here.
 	struct OpenFile *o; int r;
 	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
 		return r;
@@ -234,7 +238,6 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 	if (debug)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
-	// LAB 5: Your code here.
 	struct OpenFile *o; int r;
 	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
 		return r;
@@ -260,7 +263,7 @@ serve_stat(envid_t envid, union Fsipc *ipc)
 	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
 		return r;
 
-	strcpy(ret->ret_name, o->o_file->f_name);
+	strcpy(ret->ret_name, o->o_entry->f_name);
 	ret->ret_size = o->o_file->f_size;
 	ret->ret_isdir = (o->o_file->f_type == FTYPE_DIR);
 	return 0;
@@ -341,7 +344,8 @@ serve(void)
 void
 umain(int argc, char **argv)
 {
-	static_assert(sizeof(struct File) == 256);
+	static_assert(sizeof(struct DirEntry) == 128);
+	static_assert(sizeof(struct Inode) == 64);
 	binaryname = "fs";
 	cprintf("FS is running\n");
 
@@ -350,8 +354,8 @@ umain(int argc, char **argv)
 	cprintf("FS can do I/O\n");
 
 	serve_init();
-	fs_init();
-        fs_test();
+	ufs_init();
+    ufs_test();
 	serve();
 }
 
