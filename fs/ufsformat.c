@@ -199,6 +199,8 @@ void
 finishdir(struct Dir *d)
 {
 	int size = d->n * sizeof(struct DirEntry);
+	if (size == 0)	// empty directory
+		size = BLKSIZE;
 	char *start = alloc_block(size);
 	memmove(start, d->ents, size);
 	finishfile(d->f, blockof(start), ROUNDUP(size, BLKSIZE));
@@ -247,9 +249,10 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-	int i;
-	char *s;
-	struct Dir root;
+	int i; char *s;
+
+	struct Inode *f_sub, *f_empty;
+	struct Dir root, subdir, emptydir;
 
 	assert(BLKSIZE % sizeof(struct Inode) == 0);
 	assert(BLKSIZE % sizeof(struct DirEntry) == 0);
@@ -270,6 +273,17 @@ main(int argc, char **argv)
 	startdir(&inodes[super->s_root.f_fileno], &root);
 	for (i = 4; i < argc; i++)
 		writefile(&root, argv[i]);
+
+	f_empty = diradd(&root, FTYPE_DIR, "emptydir");
+	startdir(f_empty, &emptydir);
+	finishdir(&emptydir);
+
+	f_sub   = diradd(&root, FTYPE_DIR, "subdir");
+	startdir(f_sub, &subdir);
+	for (i = 4; i < argc; i++)
+		if (i & 1) writefile(&subdir, argv[i]);
+	finishdir(&subdir);
+
 	finishdir(&root);
 
 	finishdisk();

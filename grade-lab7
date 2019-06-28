@@ -14,7 +14,7 @@ def matchtest(parent, name, *args, **kw):
 def test_fs():
     r.user_test("hello")
 matchtest(test_fs, "fs i/o",
-          "FS can do I/O")
+          "UFS can do I/O")
 matchtest(test_fs, "check_bc",
           "block cache is good")
 matchtest(test_fs, "check_super",

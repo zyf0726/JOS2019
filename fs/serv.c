@@ -14,9 +14,8 @@
 // The file system server maintains three structures
 // for each open file.
 //
-// 1. The on-disk 'struct File' is mapped into the part of memory
-//    that maps the disk.  This memory is kept private to the file
-//    server.
+// 1. The on-disk 'struct Inode/DirEntry' is mapped into the part of memory
+//    that maps the disk.  This memory is kept private to the file server.
 // 2. Each open file has a 'struct Fd' as well, which sort of
 //    corresponds to a Unix file descriptor.  This 'struct Fd' is kept
 //    on *its own page* in memory, and it is shared with any
@@ -32,7 +31,7 @@
 struct OpenFile {
 	uint32_t o_fileid;	// file id
 	struct DirEntry *o_entry;	// directory entry of open file
-	struct Inode *o_file;	// mapped descriptor for open file
+	struct Inode *o_file;	// i-node of open file
 	int o_mode;		// open mode
 	struct Fd *o_fd;	// Fd page
 };
@@ -221,6 +220,7 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	struct OpenFile *o; int r;
 	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
 		return r;
+	req->req_n = MIN(req->req_n, PGSIZE);
 	if ((r = file_read(o->o_file, ret->ret_buf, req->req_n, o->o_fd->fd_offset)) < 0)
 		return r;
 	o->o_fd->fd_offset += r;
@@ -346,12 +346,12 @@ umain(int argc, char **argv)
 {
 	static_assert(sizeof(struct DirEntry) == 128);
 	static_assert(sizeof(struct Inode) == 64);
-	binaryname = "fs";
-	cprintf("FS is running\n");
+	binaryname = "ufs";
+	cprintf("UFS is running\n");
 
 	// Check that we are able to do I/O
 	outw(0x8A00, 0x8A00);
-	cprintf("FS can do I/O\n");
+	cprintf("UFS can do I/O\n");
 
 	serve_init();
 	ufs_init();

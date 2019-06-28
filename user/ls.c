@@ -33,6 +33,7 @@ lsdir(const char *path, const char *prefix)
 	while ((n = readn(fd, &entry, sizeof entry)) == sizeof entry)
 		if (entry.f_name[0]) {
 			strcpy(temppath, path);
+			strcat(temppath, "/");
 			strcat(temppath, entry.f_name);
 			if ((r = stat(temppath, &st)) < 0)
 				panic("stat %s: %e", temppath, r);
