@@ -11,8 +11,8 @@
 /* Maximum disk size we can handle (3GB) */
 #define DISKSIZE	0xC0000000
 
-/* Maximum size of i-node region in the disk (192MB) */
-#define INODE_REGION_SIZE	0xC000000
+/* Maximum size of i-node region in the disk (32MB) */
+#define INODE_REGION_SIZE	0x2000000
 
 struct Super *super;		// superblock
 uint32_t *bitmap_b;		// bitmap of disk blocks

@@ -15,7 +15,10 @@ check_super(void)
 		panic("bad unix file system magic number");
 
 	if (super->s_nblocks > DISKSIZE/BLKSIZE)
-		panic("file system is too large");
+		panic("unix file system is too large");
+
+	if (super->s_ninodes > INODE_REGION_SIZE / sizeof(struct Inode))
+		panic("too many i-nodes");
 
 	cprintf("superblock is good\n");
 }
