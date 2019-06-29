@@ -37,12 +37,13 @@ void	bc_init(void);
 void	ufs_init(void);
 int	file_get_block(struct Inode *f, uint32_t file_blockno, char **pblk);
 int	file_create(const char *path, struct DirEntry **pentry);
+int	file_hardlink(const char *target, const char *linkpath, struct DirEntry **pentry);
+int	file_remove(const char *path);
 int	file_open(const char *path, struct DirEntry **pentry);
 ssize_t	file_read(struct Inode *f, void *buf, size_t count, off_t offset);
 int	file_write(struct Inode *f, const void *buf, size_t count, off_t offset);
 int	file_set_size(struct Inode *f, off_t newsize);
 void	file_flush(struct Inode *f);
-int	file_remove(const char *path);
 void	fs_sync(void);
 
 /* int	map_block(uint32_t); */

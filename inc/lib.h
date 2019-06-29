@@ -118,6 +118,7 @@ int	stat(const char *path, struct Stat *statbuf);
 int	open(const char *path, int mode);
 int	ftruncate(int fd, off_t size);
 int	remove(const char *path);
+int link(const char *target, const char *linkpath);
 int	sync(void);
 
 // pageref.c

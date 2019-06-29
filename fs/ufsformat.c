@@ -105,6 +105,7 @@ opendisk(const char *name)
 	int r, fileno, diskfd;
 	int nbitblocks_b, nbitblocks_i;
 	int nblocks_inode;
+	struct Inode *f;
 
 	if ((diskfd = open(name, O_RDWR | O_CREAT, 0666)) < 0)
 		panic("open %s: %s", name, strerror(errno));
@@ -141,7 +142,10 @@ opendisk(const char *name)
 	memset(inodes, 0, nblocks_inode * BLKSIZE);
 	for (fileno = 0; fileno < ninodes; ++fileno)
 		inodes[fileno].f_fileno = fileno;
-	alloc_inode()->f_type = FTYPE_DIR;
+
+	f = alloc_inode();
+	f->f_type = FTYPE_DIR;
+	f->f_refcnt = 1;
 }
 
 void
@@ -192,6 +196,7 @@ diradd(struct Dir *d, uint32_t type, const char *name)
 	strcpy(entry->f_name, name);
 	entry->f_fileno = f->f_fileno;
 	f->f_type = type;
+	f->f_refcnt = 1;
 	return f;
 }
 
@@ -281,7 +286,7 @@ main(int argc, char **argv)
 	f_sub   = diradd(&root, FTYPE_DIR, "subdir");
 	startdir(f_sub, &subdir);
 	for (i = 4; i < argc; i++)
-		if (i & 1) writefile(&subdir, argv[i]);
+		if (i % 8 == 0) writefile(&subdir, argv[i]);
 	finishdir(&subdir);
 
 	finishdir(&root);

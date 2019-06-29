@@ -18,6 +18,8 @@ USERAPPS :=		$(USERAPPS) \
 			$(OBJDIR)/user/echo \
 			$(OBJDIR)/user/init \
 			$(OBJDIR)/user/ls \
+            $(OBJDIR)/user/rm \
+            $(OBJDIR)/user/ln \
 			$(OBJDIR)/user/lsfd \
 			$(OBJDIR)/user/num \
 			$(OBJDIR)/user/forktree \

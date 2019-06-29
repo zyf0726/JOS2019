@@ -139,6 +139,17 @@ decref_inode(uint32_t fileno)
 		free_inode(fileno);
 }
 
+// Increment the reference count of an i-node,
+void
+incref_inode(uint32_t fileno)
+{
+	int refcnt = inodes[fileno].f_refcnt;
+	if (refcnt <= 0)
+		panic("attempt to incref an i-node with non-positive refcnt %d", refcnt);
+
+	++inodes[fileno].f_refcnt;
+}
+
 // Search the bitmap for a free i-node and allocate it. When you
 // allocate an i-node, immediately flush the changed bitmap block
 // to disk.
@@ -318,6 +329,29 @@ dir_lookup(struct Inode *dir, const char *name, struct DirEntry **entry)
 	return -E_NOT_FOUND;
 }
 
+// Check whether dir is empty, i.e., has no directory entry.
+// Returns 1 if empty, 0 for not.
+static bool
+dir_is_empty(struct Inode *dir)
+{
+	int r;
+	uint32_t i, j, nblock;
+	char *blk;
+	struct DirEntry *f;
+
+	assert((dir->f_size % BLKSIZE) == 0);
+	nblock = dir->f_size / BLKSIZE;
+	for (i = 0; i < nblock; i++) {
+		if ((r = file_get_block(dir, i, &blk)) < 0)
+			return 0;
+		f = (struct DirEntry*) blk;
+		for (j = 0; j < BLKDIRENTS; j++)
+			if (strlen(f[j].f_name) > 0)
+				return 0;
+	}
+	return 1;
+}
+
 // Set *entry to point at a free DirEntry structure in dir.
 // The caller is responsible for filling in the DirEntry fields.
 static int
@@ -441,6 +475,71 @@ file_create(const char *path, struct DirEntry **pentry)
 	strcpy(entry->f_name, name);
 	entry->f_fileno = fileno;
 	*pentry = entry;
+	file_flush(dir);
+	return 0;
+}
+
+// Create a hard link to file "target" at "linkpath". On success
+// set *pentry to point at the directory of new-created link file
+// and return 0.
+// On error return < 0.
+int
+file_hardlink(const char *target, const char *linkpath, struct DirEntry **pentry)
+{
+	char name[MAXNAMELEN];
+	int r, fileno;
+	struct DirEntry *entry;
+	struct Inode *dir;
+
+	// get the i-node of target file
+	if ((r = walk_path(target, &dir, &entry, name)) < 0)
+		return r;
+	fileno = entry->f_fileno;
+
+	// allocate a new directory entry
+	if ((r = walk_path(linkpath, &dir, &entry, name)) == 0)
+		return -E_FILE_EXISTS;
+	if (r != -E_NOT_FOUND || dir == 0)
+		return r;
+	if ((r = dir_alloc_entry(dir, &entry)) < 0)
+		return r;
+
+	// the directory entry of link file should point at the
+	// same i-node as that of its target
+	strcpy(entry->f_name, name);
+	entry->f_fileno = fileno;
+
+	// increase reference count
+	incref_inode(fileno);
+
+	*pentry = entry;
+	file_flush(dir);
+	return 0;
+}
+
+// Remove "path". On success return 0, else return < 0.
+int
+file_remove(const char *path)
+{
+	char name[MAXNAMELEN];
+	int r;
+	uint32_t nblock, i, j;
+	char *blk;
+	struct DirEntry *entry;
+	struct Inode *dir, *f;
+
+	if ((r = walk_path(path, &dir, &entry, name)) < 0)
+		return r;
+
+	// can't remove a non-empty directory
+	f = &inodes[entry->f_fileno];
+	if (f->f_type == FTYPE_DIR && !dir_is_empty(f))
+		return -E_NOT_EMPTYDIR;
+
+	decref_inode(f->f_fileno);
+	memset(entry->f_name, 0, MAXNAMELEN);
+	entry->f_fileno = 0;
+
 	file_flush(dir);
 	return 0;
 }

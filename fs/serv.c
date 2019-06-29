@@ -180,6 +180,40 @@ try_open:
 	return 0;
 }
 
+// Create a hard link to file 'req->tar_path' at 'req->lnk_path',
+int
+serve_link(envid_t envid, struct Fsreq_link *req)
+{
+	char target[MAXPATHLEN];
+	char linkpath[MAXPATHLEN];
+	struct DirEntry *entry;
+	int r;
+
+	if (debug)
+		cprintf("serve_link %08x %s %s\n", envid, req->tar_path, req->lnk_path);
+
+	memmove(target, req->tar_path, MAXPATHLEN);
+	memmove(linkpath, req->lnk_path, MAXPATHLEN);
+	target[MAXPATHLEN-1] = linkpath[MAXPATHLEN-1] = 0;
+
+	return file_hardlink(target, linkpath, &entry);
+}
+
+int
+serve_remove(envid_t envid, struct Fsreq_remove *req)
+{
+	char path[MAXPATHLEN];
+	int r;
+
+	if (debug)
+		cprintf("serve_remove %08x %\n", envid, req->req_path);
+
+	memmove(path, req->req_path, MAXPATHLEN);
+	path[MAXPATHLEN-1] = 0;
+
+	return file_remove(path);
+}
+
 // Set the size of req->req_fileid to req->req_size bytes, truncating
 // or extending the file as necessary.
 int
@@ -203,6 +237,7 @@ serve_set_size(envid_t envid, struct Fsreq_set_size *req)
 	// On failure, return the error code to the client.
 	return file_set_size(o->o_file, req->req_size);
 }
+
 
 // Read at most ipc->read.req_n bytes from the current seek position
 // in ipc->read.req_fileid.  Return the bytes read from the file to
@@ -303,7 +338,9 @@ fshandler handlers[] = {
 	[FSREQ_FLUSH] =		(fshandler)serve_flush,
 	[FSREQ_WRITE] =		(fshandler)serve_write,
 	[FSREQ_SET_SIZE] =	(fshandler)serve_set_size,
-	[FSREQ_SYNC] =		serve_sync
+	[FSREQ_SYNC] =		serve_sync,
+	[FSREQ_LINK] = 		(fshandler)serve_link,
+	[FSREQ_REMOVE] = 	(fshandler)serve_remove
 };
 
 void

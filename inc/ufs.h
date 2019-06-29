@@ -78,8 +78,9 @@ enum {
 	// Stat returns a Fsret_stat on the request page
 	FSREQ_STAT,
 	FSREQ_FLUSH,
-	FSREQ_REMOVE,
-	FSREQ_SYNC
+	FSREQ_SYNC,
+	FSREQ_LINK,
+	FSREQ_REMOVE
 };
 
 union Fsipc {
@@ -87,6 +88,13 @@ union Fsipc {
 		char req_path[MAXPATHLEN];
 		int req_omode;
 	} open;
+	struct Fsreq_link {
+		char tar_path[MAXPATHLEN];
+		char lnk_path[MAXPATHLEN];
+	} link;
+	struct Fsreq_remove {
+		char req_path[MAXPATHLEN];
+	} remove;
 	struct Fsreq_set_size {
 		int req_fileid;
 		off_t req_size;
@@ -114,9 +122,6 @@ union Fsipc {
 	struct Fsreq_flush {
 		int req_fileid;
 	} flush;
-	struct Fsreq_remove {
-		char req_path[MAXPATHLEN];
-	} remove;
 
 	// Ensure Fsipc is one page
 	char _pad[PGSIZE];

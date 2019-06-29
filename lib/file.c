@@ -88,6 +88,31 @@ open(const char *path, int mode)
 	return fd2num(fd);
 }
 
+// Remove a file (or empty directory).
+// Returns 0 on success, < 0 on error.
+int
+remove(const char *path)
+{
+	if (strlen(path) >= MAXPATHLEN)
+		return -E_BAD_PATH;
+	strcpy(fsipcbuf.remove.req_path, path);
+	return fsipc(FSREQ_REMOVE, NULL);
+}
+
+// Create a hard link to file "target" at "linkpath".
+// Returns 0 on success, < 0 on error.
+int
+link(const char *target, const char *linkpath)
+{
+	if (strlen(target) >= MAXPATHLEN)
+		return -E_BAD_PATH;
+	if (strlen(linkpath) >= MAXPATHLEN)
+		return -E_BAD_PATH;
+	strcpy(fsipcbuf.link.tar_path, target);
+	strcpy(fsipcbuf.link.lnk_path, linkpath);
+	return fsipc(FSREQ_LINK, NULL);
+}
+
 // Flush the file descriptor.  After this the fileid is invalid.
 //
 // This function is called by fd_close.  fd_close will take care of
