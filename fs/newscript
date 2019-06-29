@@ -1,0 +1,20 @@
+ls -l
+ls -l subdir
+ls -l emptydir
+rm subdir
+rm emptydir
+ln motd motd
+ln tdmo tomd
+ln motd subdir/motd
+ls -l motd
+ls -l subdir/motd
+echo NEW MESSAGE! > subdir/motd
+cat motd
+cat subdir/motd
+rm motd
+cat subdir/motd
+ln subdir linkdir
+ls -l
+ls -l linkdir
+rm subdir/motd
+ls -l linkdir
